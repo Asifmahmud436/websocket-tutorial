@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Generic Chat App</h1>
+        <h2>Room name: {{ groupname }}</h2>
+        <textarea id="chat-log" cols='100' rows='20' readonly>
+            {% for chat in chats %}{{chat.content}}{% endfor %}
+        </textarea><br>
+        <input type="text" id='chat-message-input' size='100'><br>
+        <input type="button" id='chat-message-submit' value="Send">
+        {{ groupname|json_script:"group_name" }}
+    </div>
+
+    <script>
+        const groupName = JSON.parse(document.getElementById('group_name').textContent);
+        const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const ws = new WebSocket(`${ws_scheme}://${window.location.host}/ws/wsc/${groupName}/`);
+
+        ws.onopen = function() {
+            console.log("WebSocket Connected");
+        };
+
+        ws.onmessage = function(event) {
+            console.log("Message Received from server", event);
+            const data = JSON.parse(event.data);
+            document.querySelector('#chat-log').value += (data.message + '\n');  // Correct newline
+        };
+
+        document.getElementById('chat-message-submit').onclick = function(event) {
+            const messageInputDom = document.getElementById('chat-message-input');
+            const message = messageInputDom.value;
+            ws.send(JSON.stringify({
+                'msg': message
+            }));
+            messageInputDom.value = '';  // Clear input after sending
+        };
+    </script>
+</body>
+</html>
