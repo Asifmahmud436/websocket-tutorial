@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        #chat-log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .chat-message {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Group Name: {{ groupname }}</h1>
+
+    <div id="chat-log">
+        {% for chat in chats %}
+            <div class="chat-message">{{ chat.content }}</div>
+        {% endfor %}
+    </div><br>
+
+    <input type="text" id="chat-message-input" size="100">
+    <input type="button" value="Send" id="chat-message-submit">
+
+    {{ groupname | json_script:'group-name' }}
+
+    <script>
+        const groupName = JSON.parse(document.getElementById('group-name').textContent);
+        var ws = new WebSocket(
+            'ws://' + window.location.host + '/ws/ac/' + groupName + '/'
+        );
+
+        ws.onopen = function() {
+            console.log("WebSocket Connection Okay!");
+        }
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const chatLog = document.querySelector('#chat-log');
+            const newMessage = document.createElement('div');
+            newMessage.className = 'chat-message';
+            newMessage.textContent = data.user +' : '+ data.msg;
+            chatLog.appendChild(newMessage);
+            chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to bottom
+        }
+
+        ws.onclose = function(event) {
+            console.log("WebSocket Connection Closed", event);
+        }
+
+        document.getElementById('chat-message-submit').onclick = function(event) {
+            const messageInputDom = document.getElementById('chat-message-input');
+            const message = messageInputDom.value.trim();
+
+            if (message) {
+                ws.send(JSON.stringify({
+                    'msg': message
+                }));
+                messageInputDom.value = '';
+            }
+        };
+    </script>
+</body>
+</html>
